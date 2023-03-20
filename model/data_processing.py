@@ -1,6 +1,4 @@
 # Spark imports
-from pyspark.rdd import RDD
-from pyspark.sql import DataFrame
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import split, when
 
@@ -19,28 +17,6 @@ def init_spark():
     return spark
 
 
-# Useful functions to print RDDs and Dataframes.
-def toCSVLineRDD(rdd):
-    """
-    This function convert an RDD or a DataFrame into a CSV string
-    """
-    a = rdd.map(lambda row: ",".join([str(elt) for elt in row])).reduce(
-        lambda x, y: "\n".join([x, y])
-    )
-    return a + "\n"
-
-
-def toCSVLine(data):
-    """
-    Convert an RDD or a DataFrame into a CSV string
-    """
-    if isinstance(data, RDD):
-        return toCSVLineRDD(data)
-    elif isinstance(data, DataFrame):
-        return toCSVLineRDD(data.rdd)
-    return None
-
-
 # Converts FIFA-defined positions to one of our three labels.
 def label_conversion(player_position):
     player_position = (
@@ -53,6 +29,8 @@ def label_conversion(player_position):
     return player_position
 
 
+# This data preparation phase returns a count of 3,266,866 defenders, 3,712,577 midfielders,
+# and 1,902,995 forwards. Majority within the defender and midfielders classes is visible.
 def data_preparation(file1, file2, file3, file4, file5, file6):
     spark = init_spark()
 
@@ -65,11 +43,10 @@ def data_preparation(file1, file2, file3, file4, file5, file6):
 
     df = df1.union(df2).union(df3).union(df4).union(df5).union(df6)
 
-    # Start by selecting all field-related features relevant to our model and removing unnecessary characteristics
-    # such as player name, height, age, net worth, etc.
+    # Start by selecting all field-related features relevant to our model and removing
+    # unnecessary characteristics such as player name, height, age, net worth, etc.
     # Initial row count is of 10,003,590.
     players = df.select(
-        "long_name",
         "player_positions",
         "overall",
         "skill_moves",
@@ -123,7 +100,8 @@ def data_preparation(file1, file2, file3, file4, file5, file6):
         "player_position", split(players["player_positions"], ",")[0]
     ).drop("player_positions")
 
-    # For players whose position is not goalkeeper, most of these fields are empty.
+    # For players whose position is goalkeeper, important attribute fields are empty,
+    # such as shooting, passing, dribbling, defending, ect.
     # We will therefore remove all goal-keeping related attributes and goal-keepers
     # from our data selection.
     # Reduces our row count from 10,003,590 to 8,882,644.
@@ -136,27 +114,42 @@ def data_preparation(file1, file2, file3, file4, file5, file6):
         "goalkeeping_speed",
     ).filter(players.player_position != "GK")
 
+    # Convert specific positions such as RW, CDM, LB to a more general
+    # label (defender, midfielder or forward).
     players = players.withColumn(
         "label_position", label_conversion(players["player_position"])
     ).drop("player_position")
 
+    # Drop features which are not discriminative towards any of the three labels,
+    # and where same values can easily be obtained between players of all classes.
+    players = players.drop(
+        "overall",
+        "skill_moves",
+        "physic",
+        "skill_curve",
+        "movement_reactions",
+        "power_jumping",
+        "power_strength",
+        "mentality_aggression",
+        "mentality_vision",
+        "mentality_composure",
+    )
+
     # Drop rows containing null values or a label position of "Undefined"
-    # No undefined positions were counted but removing nulls reduces our
-    # row count from ... to ...
-    # players.filter(players.label_position != "Undefined").count()
-    # players = players.dropna()
+    # No undefined positions were counted but removing nulls minimally reduces
+    # our row count from 8,882,644 to 8,882,438.
+    players.filter(players.label_position != "Undefined").count()
+    players = players.dropna()
 
-    defenders = players.filter(players.label_position == "Defender")
-    midfielders = players.filter(players.label_position == "Midfielder")
-    forwards = players.filter(players.label_position == "Forward")
-    undefined = players.filter(players.label_position == "Undefined")
-
-    # Defenders = 3,266,916, Midfielders: 3,712,669, Forwards: 1,903,059, Undefined: 0
-    return (defenders.count(), midfielders.count(), forwards.count(), undefined.count())
+    # Defenders: 3,266,866, Midfielders: 3,712,577, Forwards: 1,902,995, Undefined: 0
+    return players
 
 
-print(
-    data_preparation(
+# Undersamples the data to reduce class imbalance, returning 1,500,000
+# player values for each of the three classes (easily splittable into
+# two thirds training and one third testing).
+def sampled_data():
+    players = data_preparation(
         "./data/male_players1.csv",
         "./data/male_players2.csv",
         "./data/male_players3.csv",
@@ -164,4 +157,26 @@ print(
         "./data/male_players5.csv",
         "./data/male_players6.csv",
     )
-)
+
+    # Filter through classes by position name.
+    defenders = players.filter(players.label_position == "Defender")
+    midfielders = players.filter(players.label_position == "Midfielder")
+    forwards = players.filter(players.label_position == "Forward")
+
+    # Sample 1,500,000 player values from each class to remove data imbalance where
+    # the Forwards class is a minority.
+    defenders = defenders.sample(fraction=1500000 / defenders.count()).limit(1500000)
+    midfielders = midfielders.sample(fraction=1500000 / midfielders.count()).limit(
+        1500000
+    )
+    forwards = forwards.sample(fraction=1500000 / forwards.count()).limit(1500000)
+
+    players = defenders.union(midfielders).union(forwards)
+
+    return players.count()
+
+
+## Note (delete this after): data rn returns all defenders first, then
+# midfielders, then forwards. Should shuffle it before making a definite
+# split between training and testing sets. ##
+print(sampled_data())
