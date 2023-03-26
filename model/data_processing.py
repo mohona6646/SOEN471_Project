@@ -179,4 +179,3 @@ def sampled_data():
 ## Note (delete this after): data rn returns all defenders first, then
 # midfielders, then forwards. Should shuffle it before making a definite
 # split between training and testing sets. ##
-print(sampled_data())
