@@ -19,7 +19,7 @@ findspark.init()
 def init_spark():
     spark = (
         SparkSession.builder.appName("SOEN 471 Project")
-        .config('spark.executor.instances', 4)
+        .config("spark.some.config.option", "some-value")
         .getOrCreate()
     )
     return spark
@@ -176,11 +176,11 @@ def sampled_data():
 
     # Sample 1,500,000 player values from each class to remove data imbalance where
     # the Forwards class is a minority.
-    defenders = defenders.sample(fraction=500000 / defenders.count()).limit(500000)
-    midfielders = midfielders.sample(fraction=500000 / midfielders.count()).limit(
-        500000
+    defenders = defenders.sample(fraction=500 / defenders.count()).limit(500)
+    midfielders = midfielders.sample(fraction=500 / midfielders.count()).limit(
+        500
     )
-    forwards = forwards.sample(fraction=500000 / forwards.count()).limit(500000)
+    forwards = forwards.sample(fraction=500 / forwards.count()).limit(500)
 
     players = defenders.union(midfielders).union(forwards)
 
