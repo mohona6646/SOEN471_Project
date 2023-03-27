@@ -101,7 +101,7 @@ def data_preparation(file1, file2, file3, file4, file5, file6):
     ).drop("player_positions")
 
     # For players whose position is goalkeeper, important attribute fields are empty,
-    # such as shooting, passing, dribbling, defending, ect.
+    # such as shooting, passing, dribbling, defending, etc.
     # We will therefore remove all goal-keeping related attributes and goal-keepers
     # from our data selection.
     # Reduces our row count from 10,003,590 to 8,882,644.
