@@ -1,110 +1,59 @@
-from data_processing import data_preparation
-import numpy as np
-from pyspark.sql.functions import array, col, monotonically_increasing_id, row_number
-from pyspark.sql.window import Window
+from data_processing import *
+import pandas as pd
+from sklearn.neighbors import KNeighborsClassifier
+from datetime import datetime
+import os.path
 
 
-def euclidean_distance(v1, v2):
-    return np.sum((v1 - v2) ** 2)
+def printf(*arg, **kwarg):
+    timestamp = datetime.now().strftime("%H:%M:%S.%f")
+    print(f'[{timestamp}]', *arg, **kwarg)
 
 
-def knnModel(trainingSet, toPredictSet, k):
-    featuresArray = array(
-        "pace",
-        "shooting",
-        "passing",
-        "dribbling",
-        "defending",
-        "attacking_crossing",
-        "attacking_finishing",
-        "attacking_heading_accuracy",
-        "attacking_short_passing",
-        "attacking_volleys",
-        "skill_dribbling",
-        "skill_fk_accuracy",
-        "skill_long_passing",
-        "skill_ball_control",
-        "movement_acceleration",
-        "movement_sprint_speed",
-        "movement_agility",
-        "movement_balance",
-        "power_shot_power",
-        "power_stamina",
-        "power_long_shots",
-        "mentality_interceptions",
-        "mentality_positioning",
-        "mentality_penalties",
-        "defending_marking_awareness",
-        "defending_standing_tackle",
-        "defending_sliding_tackle",
-    )
-    trainingSetDf = trainingSet.select(
-        featuresArray.alias("features_in_array_training"), "label_position"
-    )
-    toPredictSetDf = toPredictSet.select(
-        monotonically_increasing_id().alias("id"),
-        featuresArray.alias("features_in_array_predict"),
-    )
-    merged = toPredictSetDf.crossJoin(trainingSetDf)
-    mergedRDD = merged.rdd
-    mergedRDD = mergedRDD.map(
-        lambda r: [
-            r.id,
-            euclidean_distance(
-                np.array(r.features_in_array_predict).astype(float),
-                np.array(r.features_in_array_training).astype(float),
-            ).tolist(),
-            r.label_position,
-        ]
-    )
-    merged = mergedRDD.toDF(["id", "distance", "label_position"])
-    windowMerged = Window.partitionBy("id").orderBy(col("distance").asc())
-    merged = (
-        merged.withColumn("row", row_number().over(windowMerged))
-        .filter(col("row") <= k)
-        .drop("row")
-        .drop("distance")
-    )
-    merged = merged.groupBy(["id", "label_position"]).count()
-    windowMerged = Window.partitionBy("id").orderBy(col("count").desc())
-    merged = (
-        merged.withColumn("row", row_number().over(windowMerged))
-        .filter(col("row") == 1)
-        .drop("row")
-        .drop("count")
-    )
-    merged = merged.orderBy("id").drop("id")
-    merged = merged.withColumnRenamed("label_position", "prediction")
-    return merged
-
+def cleanup_data_and_store_as_parquet():
+    players = data_preparation('./data/male_players.csv')
+    trainingSet, testSet = players.randomSplit([0.67, 0.33], 24)
+    trainingSet.write.parquet('./data/male_players_cleaned_training')
+    testSet.write.parquet('./data/male_players_cleaned_test')
 
 if __name__ == "__main__":
-    players = data_preparation(
-        "./data/male_players1.csv",
-        "./data/male_players2.csv",
-        "./data/male_players3.csv",
-        "./data/male_players4.csv",
-        "./data/male_players5.csv",
-        "./data/male_players6.csv",
-    )
+    # cleanup_data_and_store_as_parquet()
 
-    trainingSet, testSet = players.randomSplit([0.67, 0.33], 24)
-    unlabeledTestSet, testSetRealLabels = testSet.drop(
-        "label_position"
-    ), testSet.select("label_position").withColumnRenamed(
-        "label_position", "real_label"
-    )
+    printf("Loading dataset...")
+    trainingSet = pd.read_parquet('./data/male_players_cleaned_training')
+    testSet = pd.read_parquet('./data/male_players_cleaned_test')
+    printf(f'Finished loading dataset. Training set: {trainingSet.shape[0]} rows, Test set: {testSet.shape[0]} rows')
+    
+    trainingSetLabels = trainingSet.iloc[:, -1:].values.ravel()
+    trainingSet = trainingSet.iloc[:, :-1]
 
-    testSetPredictions = knnModel(trainingSet, unlabeledTestSet, k=3)
+    testSetLabels = testSet.iloc[:, -1:].values.ravel()
+    testSet = testSet.iloc[:, :-1]
 
-    # Concat testSetPredictions and testSetRealLabels together and display results
-    result = (
-        testSetPredictions.withColumn("row_id", monotonically_increasing_id())
-        .join(
-            testSetRealLabels.withColumn("row_id", monotonically_increasing_id()),
-            ("row_id"),
-        )
-        .orderBy(col("row_id").asc())
-        .drop("row_id")
-    )
-    result.show()
+    printf("Fitting kNN model...")
+    model = KNeighborsClassifier(n_neighbors=3, algorithm='kd_tree', n_jobs=-1)
+    model.fit(trainingSet, trainingSetLabels)
+    printf(f"Finished fitting model.")
+
+    printf("Predicting test labels...")
+    # chunks = 10000
+    # testSetChunkSize = testSet.shape[0] // chunks
+    # iteration = 0
+    # for i in range(0, testSet.shape[0], testSetChunkSize):
+    #     iteration += 1
+    #     file_name = f'./data/knn_results/{iteration}_{chunks}.csv'
+    #     if os.path.exists(file_name):
+    #         print(f'Skipping iteration {iteration}')
+    #         continue
+    #     predictions = model.predict(testSet[i:i+testSetChunkSize])
+    #     result = pd.DataFrame({'predictions': predictions})
+    #     result.to_csv(file_name, index=False)
+    #     printf(f'{iteration/(chunks/100)}% done')
+    predictions = model.predict(testSet)
+    printf("Finished predictions.")
+
+    printf("Storing results...")
+    result = pd.DataFrame({'predictions': predictions, 'real_labels': testSetLabels})
+    result.to_csv('./data/knn_results.csv', index=False)
+
+    printf("Done!")
