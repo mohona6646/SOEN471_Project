@@ -173,10 +173,7 @@ def sampled_data():
 
     players = defenders.union(midfielders).union(forwards)
 
-    return players.count()
+    return players
 
 
-## Note (delete this after): data rn returns all defenders first, then
-# midfielders, then forwards. Should shuffle it before making a definite
-# split between training and testing sets. ##
-print(sampled_data())
+df = sampled_data()
