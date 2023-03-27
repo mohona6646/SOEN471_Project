@@ -19,7 +19,8 @@ findspark.init()
 def init_spark():
     spark = (
         SparkSession.builder.appName("SOEN 471 Project")
-        .config("spark.some.config.option", "some-value")
+        .master("local[4]")
+        .config("spark.driver.memory", "12g")
         .getOrCreate()
     )
     return spark
@@ -39,17 +40,17 @@ def label_conversion(player_position):
 
 # This data preparation phase returns a count of 3,266,866 defenders, 3,712,577 midfielders,
 # and 1,902,995 forwards. Majority within the defender and midfielders classes is visible.
-def data_preparation(file1):
+def data_preparation(file1, file2, file3, file4, file5, file6):
     spark = init_spark()
 
     df1 = spark.read.csv(file1, header=True)
-    # df2 = spark.read.csv(file2, header=True)
-    # df3 = spark.read.csv(file3, header=True)
-    # df4 = spark.read.csv(file4, header=True)
-    # df5 = spark.read.csv(file5, header=True)
-    # df6 = spark.read.csv(file6, header=True)
+    df2 = spark.read.csv(file2, header=True)
+    df3 = spark.read.csv(file3, header=True)
+    df4 = spark.read.csv(file4, header=True)
+    df5 = spark.read.csv(file5, header=True)
+    df6 = spark.read.csv(file6, header=True)
 
-    df = df1 #.union(df2).union(df3).union(df4).union(df5).union(df6)
+    df = df1.union(df2).union(df3).union(df4).union(df5).union(df6)
 
     # Start by selecting all field-related features relevant to our model and removing
     # unnecessary characteristics such as player name, height, age, net worth, etc.
@@ -161,12 +162,12 @@ def data_preparation(file1):
 # two thirds training and one third testing).
 def sampled_data():
     players = data_preparation(
-        "../data/male_players.csv"
-        # "./data/male_players2.csv",
-        # "./data/male_players3.csv",
-        # "./data/male_players4.csv",
-        # "./data/male_players5.csv",
-        # "./data/male_players6.csv",
+        "./data/male_players1.csv",
+        "./data/male_players2.csv",
+        "./data/male_players3.csv",
+        "./data/male_players4.csv",
+        "./data/male_players5.csv",
+        "./data/male_players6.csv",
     )
 
     # Filter through classes by position name.
@@ -176,11 +177,11 @@ def sampled_data():
 
     # Sample 1,500,000 player values from each class to remove data imbalance where
     # the Forwards class is a minority.
-    defenders = defenders.sample(fraction=500 / defenders.count()).limit(500)
-    midfielders = midfielders.sample(fraction=500 / midfielders.count()).limit(
-        500
+    defenders = defenders.sample(fraction=1500000 / defenders.count()).limit(1500000)
+    midfielders = midfielders.sample(fraction=1500000 / midfielders.count()).limit(
+        1500000
     )
-    forwards = forwards.sample(fraction=500 / forwards.count()).limit(500)
+    forwards = forwards.sample(fraction=1500000 / forwards.count()).limit(1500000)
 
     players = defenders.union(midfielders).union(forwards)
 
