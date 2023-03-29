@@ -191,8 +191,8 @@ def sampled_data():
 # midfielders, then forwards. Should shuffle it before making a definite
 # split between training and testing sets. ##
 #print(sampled_data())
-df = sampled_data()
+#df = sampled_data()
 # df.show()
 # df.printSchema()
-random_forest.randomforest(df)
+#random_forest.randomforest(df)
 
