@@ -45,12 +45,12 @@ def cleanup_data_and_store_as_parquet(players):
 
 if __name__ == "__main__":
     players = data_preparation(
-        "../data/male_players.csv",
-        # "../data/male_players2.csv",
-        # "../data/male_players3.csv",
-        # "../data/male_players4.csv",
-        # "../data/male_players5.csv",
-        # "../data/male_players6.csv",
+        "../data/male_players1.csv",
+        "../data/male_players2.csv",
+        "../data/male_players3.csv",
+        "../data/male_players4.csv",
+        "../data/male_players5.csv",
+        "../data/male_players6.csv",
     )
     cleanup_data_and_store_as_parquet(players)
     printf("-------Using the entire of data set-------")
