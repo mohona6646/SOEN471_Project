@@ -3,10 +3,9 @@ import pandas as pd
 from sklearn.neighbors import KNeighborsClassifier
 from datetime import datetime
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import recall_score, precision_score, f1_score, confusion_matrix, ConfusionMatrixDisplay
-import matplotlib.pyplot as plt
+from sklearn.metrics import accuracy_score, recall_score, precision_score, f1_score, confusion_matrix
 
-def predict(model, name, trainingSet, trainingSetLabels):
+def predict(model, name, trainingSet, trainingSetLabels, testSetLabels):
     printf(f'Fitting {name} model...')
     model.fit(trainingSet, trainingSetLabels)
     printf(f"Finished fitting model.")
@@ -19,16 +18,17 @@ def predict(model, name, trainingSet, trainingSetLabels):
     # printf("Storing results...")
     # result = pd.DataFrame({'predictions': predictions, 'real_labels': testSetLabels})
     # result.to_csv('./data/{name}_results.csv', index=False)
-    printf("Evaluating predictions...")
+    printf("Evaluating predictions...\n")
     recall = recall_score(testSetLabels, predictions, average='micro')
-    printf('Recall: {}'.format(recall))
     presion = precision_score(testSetLabels, predictions, average='micro')
-    printf('Precision: {}'.format(presion))
     f1Score = f1_score(testSetLabels, predictions, average='micro')
-    printf('F1 Score: {}'.format(f1Score))
-    printf("Confusion Matrix\n\n")
+    accuracy = accuracy_score(testSetLabels, predictions)
+    data = [[recall, presion, f1Score, accuracy]]
+    df = pd.DataFrame(data, columns=['Recall', 'Precision', 'F1 Score', 'Accuracy'])
+    print(df)
+    printf("Confusion Matrix")
     cm = confusion_matrix(testSetLabels, predictions)
-    printf(cm)
+    print(f'\n{cm}')
 
 def printf(*arg, **kwarg):
     timestamp = datetime.now().strftime("%H:%M:%S.%f")
@@ -42,12 +42,7 @@ def cleanup_data_and_store_as_parquet(players):
 
 if __name__ == "__main__":
     players = data_preparation(
-        "./data/male_players1.csv",
-        "./data/male_players2.csv",
-        "./data/male_players3.csv",
-        "./data/male_players4.csv",
-        "./data/male_players5.csv",
-        "./data/male_players6.csv",
+        "./data/male_players.csv"
     )
     #cleanup_data_and_store_as_parquet(players)
     printf("-------Using the entire of data set-------")
@@ -67,9 +62,9 @@ if __name__ == "__main__":
     testSet = testSet.iloc[:, :-1]
     # KNN
     model = KNeighborsClassifier(n_neighbors=3, algorithm='kd_tree', n_jobs=-1)
-    predict(model,"KNN",trainingSet, trainingSetLabels)
+    predict(model,"KNN",trainingSet, trainingSetLabels, testSetLabels)
     # Random Forest
     model = RandomForestClassifier(max_depth=7, random_state=0)
-    predict(model,"Random Forest",trainingSet, trainingSetLabels)
+    predict(model,"Random Forest",trainingSet, trainingSetLabels, testSetLabels)
     
     ## Create decision tree here
