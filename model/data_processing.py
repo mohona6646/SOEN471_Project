@@ -109,7 +109,7 @@ def data_preparation(file1):
     ).drop("player_positions")
 
     # For players whose position is goalkeeper, important attribute fields are empty,
-    # such as shooting, passing, dribbling, defending, ect.
+    # such as shooting, passing, dribbling, defending, etc.
     # We will therefore remove all goal-keeping related attributes and goal-keepers
     # from our data selection.
     # Reduces our row count from 10,003,590 to 8,882,644.
@@ -187,12 +187,6 @@ def sampled_data():
     return players
 
 
-## Note (delete this after): data rn returns all defenders first, then
-# midfielders, then forwards. Should shuffle it before making a definite
-# split between training and testing sets. ##
-#print(sampled_data())
-#df = sampled_data()
-# df.show()
-# df.printSchema()
-#random_forest.randomforest(df)
+df = sampled_data()
+random_forest.randomforest(df)
 
