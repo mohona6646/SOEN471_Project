@@ -18,6 +18,7 @@ def decision_tree(df):
     # Train random forest model and get the predictions from test set
 
     trainingData, testData = df.randomSplit([0.67, 0.33], 24)
+    
 
     dt = DecisionTreeClassifier(labelCol="label_position_index", featuresCol="indexed_features", impurity="entropy",
                                 maxDepth=15)
