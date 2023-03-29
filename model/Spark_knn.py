@@ -3,7 +3,7 @@ import numpy as np
 from pyspark.sql.functions import array, col, monotonically_increasing_id, row_number
 from pyspark.sql.window import Window
 from pyspark.mllib.evaluation import MulticlassMetrics
-from sklearn.metrics import classification_report
+from sklearn.metrics import classification_report, confusion_matrix
 import pandas as pd
 
 def euclidean_distance(v1, v2):
@@ -110,6 +110,7 @@ if __name__ == "__main__":
 
     print("Classification Report:")
     print(report_df)
-    confusion_matrix = evaluationMetrics.confusionMatrix().toArray()
+    cm = confusion_matrix(testSetRealLabels.toPandas(), resultPD['prediction'])
+    print(f'\n{cm}')
     print("Confusion Matrix")
-    print(confusion_matrix)
+    print(cm)
