@@ -162,12 +162,12 @@ def data_preparation(file1, file2, file3, file4, file5, file6):
 # two thirds training and one third testing).
 def sampled_data():
     players = data_preparation(
-        "./data/male_players1.csv",
-        "./data/male_players2.csv",
-        "./data/male_players3.csv",
-        "./data/male_players4.csv",
-        "./data/male_players5.csv",
-        "./data/male_players6.csv",
+        "../data/male_players1.csv",
+        "../data/male_players2.csv",
+        "../data/male_players3.csv",
+        "../data/male_players4.csv",
+        "../data/male_players5.csv",
+        "../data/male_players6.csv",
     )
 
     # Filter through classes by position name.
@@ -186,8 +186,4 @@ def sampled_data():
     players = defenders.union(midfielders).union(forwards)
 
     return players
-
-
-df = sampled_data()
-random_forest.randomforest(df)
 
