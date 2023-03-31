@@ -14,7 +14,7 @@ from sklearn.metrics import (
 )
 
 
-def predict(model, name, trainingSet, testSet, trainingSetLabels, testSetLabels):
+def predict(model, name, trainingSet, testSet, trainingSetLabels):
     printf(f"Fitting {name} model...")
     model.fit(trainingSet, trainingSetLabels)
     printf(f"Finished fitting model.")
@@ -23,21 +23,8 @@ def predict(model, name, trainingSet, testSet, trainingSetLabels, testSetLabels)
 
     predictions = model.predict(testSet)
     printf("Finished predictions.")
+    return predictions
 
-    # printf("Storing results...")
-    # result = pd.DataFrame({'predictions': predictions, 'real_labels': testSetLabels})
-    # result.to_csv('./data/{name}_results.csv', index=False)
-    printf("Evaluating predictions...\n")
-    recall = recall_score(testSetLabels, predictions, average="micro")
-    presion = precision_score(testSetLabels, predictions, average="micro")
-    f1Score = f1_score(testSetLabels, predictions, average="micro")
-    accuracy = accuracy_score(testSetLabels, predictions)
-    data = [[recall, presion, f1Score, accuracy]]
-    df = pd.DataFrame(data, columns=["Recall", "Precision", "F1 Score", "Accuracy"])
-    print(df)
-    printf("Confusion Matrix")
-    cm = confusion_matrix(testSetLabels, predictions)
-    print(f"\n{cm}")
 
 
 def printf(*arg, **kwarg):
