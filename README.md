@@ -28,13 +28,18 @@ Using these three algorithms and comparing the performance of each, we hope that
 
 ## Cloning the repository
 
-... bs (update # features once done too)
+Once the repository has been cloned, the split data files are still so large that you may find your `data` folder to be empty. In that case, the complete dataset can be downloaded from Kaggle ([here](https://www.kaggle.com/datasets/stefanoleone992/fifa-23-complete-player-dataset?select=male_players.csv)) and placed into your folder instead. You need only to update the file name the dataframe takes in as input in `data_processing.py` after that.
 
 #### Required Libraries
 
-- bs
-- bs
-- bs
+- pandas
+- matplotlib
+- pathlib
+- shutil
+- numpy
+- pyspark
+- findspark
+- sklearn
 
 ## Our Team
 |       Names         |   Github Username | Student ID | 
